@@ -12,6 +12,7 @@ use Composer\Installer\PackageEvents;
 use Composer\Plugin\PluginInterface;
 use Composer\Script\Event as ScriptEvent;
 use Composer\Script\ScriptEvents;
+use Composer\Util\Filesystem;
 
 class Plugin implements PluginInterface, EventSubscriberInterface
 {
@@ -40,6 +41,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface
         $vendorDir = $baseDir . DIRECTORY_SEPARATOR . $destination . DIRECTORY_SEPARATOR . $branch . DIRECTORY_SEPARATOR . "vendor";
         $composer->getConfig()->merge(['config' => ['vendor-dir' => $vendorDir]]);
 
+        $this->composer = $composer;
         $this->installer = new PluginInstaller($io, $composer);
         $composer->getInstallationManager()->addInstaller($this->installer);
     }
@@ -59,8 +61,15 @@ class Plugin implements PluginInterface, EventSubscriberInterface
         $op = $event->getOperation();
         if ($op instanceof InstallOperation) {
             $package = $op->getPackage();
-            if ($package->getType() !== 'drupal-core') {
-                var_dump($this->installer->getInstallPath($package));
+            $type = $package->getType();
+            if (substr( $type, 0, 7) === "drupal-" && $type !== 'drupal-core') {
+                $installPath = $this->installer->getInstallPath($package);
+                $basePath = dirname($this->composer->getConfig()->get('vendor-dir'));
+                $symlinkPath = $basePath . DIRECTORY_SEPARATOR . rtrim(PackageUtils::getPackageInstallPath($package, $this->composer), '/');
+                var_dump($symlinkPath);
+                $fs = new FileSystem();
+                $fs->ensureDirectoryExists(dirname($symlinkPath));
+                $fs->relativeSymlink($installPath, $symlinkPath);
             }
         }
     }

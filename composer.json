@@ -1,5 +1,5 @@
 {
-  "name": "ec-europa/dev-plugin",
+  "name": "verbruggenalex/drupal-installer",
   "type": "composer-plugin",
   "replace": {
     "composer/installers": "*"

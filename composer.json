@@ -1,0 +1,21 @@
+{
+  "name": "ec-europa/dev-plugin",
+  "type": "composer-plugin",
+  "replace": {
+    "composer/installers": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "MyBundle\\Composer\\": "src"
+    }
+  },
+  "extra": {
+    "class": "MyBundle\\Composer\\Plugin",
+    "branch-alias": {
+      "dev-master": "1.0-dev"
+    }
+  },
+  "require": {
+    "composer-plugin-api": "^1.0"
+  }
+}

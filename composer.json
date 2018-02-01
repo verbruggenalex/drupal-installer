@@ -10,10 +10,7 @@
     }
   },
   "extra": {
-    "class": "MyBundle\\Composer\\Plugin",
-    "branch-alias": {
-      "dev-master": "1.0-dev"
-    }
+    "class": "MyBundle\\Composer\\Plugin"
   },
   "require": {
     "composer-plugin-api": "^1.0"

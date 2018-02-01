@@ -11,11 +11,12 @@ class PluginInstaller extends LibraryInstaller
   public function getInstallPath(PackageInterface $package)
   {
         $this->initializeVendorDir();
+        $version = $package->getPrettyVersion();
         $vendorDir = $this->composer->getConfig()->get('vendor-dir');
-        $basePath = $package->getType() == 'drupal-core' ? dirname($vendorDir) : $vendorDir . DIRECTORY_SEPARATOR . $package->getPrettyName();
+        $basePath = 'vendor' . DIRECTORY_SEPARATOR . $package->getPrettyName() . DIRECTORY_SEPARATOR . $version;
         $targetDir = $package->getTargetDir();
 
-        return $basePath . ($targetDir ? '/' . $targetDir : '');
+        return $basePath;
   }
     /**
      * @param InstalledRepositoryInterface $repo

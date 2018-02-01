@@ -53,12 +53,13 @@ class Plugin implements PluginInterface, EventSubscriberInterface
         $baseDir = dirname($composer->getConfig()->get('vendor-dir', 1));
         $branch = trim(str_replace('* ', '', exec("git branch | grep '\*'")));
 
-        $vendorDir = $baseDir . DIRECTORY_SEPARATOR . $destination . DIRECTORY_SEPARATOR . $branch . DIRECTORY_SEPARATOR . "vendor";
-        $composer->getConfig()->merge(['config' => ['vendor-dir' => $vendorDir]]);
+        $projectDir = $baseDir . DIRECTORY_SEPARATOR . $destination . DIRECTORY_SEPARATOR . $branch . DIRECTORY_SEPARATOR;
+        $composer->getConfig()->merge(['config' => ['vendor-dir' => $projectDir . '/vendor']]);
+        $composer->getConfig()->merge(['config' => ['bin-dir' => $projectDir . '/bin']]);
 
         $this->io = $io;
         $this->fs = new FileSystem();
-        $this->baseDir = $baseDir;
+        $this->baseDir = '/home/verbral/toolkit-taskrunner';
         $this->composer = $composer;
         $this->installer = new PluginInstaller($io, $composer);
         $composer->getInstallationManager()->addInstaller($this->installer);
@@ -116,14 +117,46 @@ class Plugin implements PluginInterface, EventSubscriberInterface
         $op = $event->getOperation();
         if ($op instanceof InstallOperation) {
             $package = $op->getPackage();
+
             $type = $package->getType();
-            if (substr( $type, 0, 7) === "drupal-" && $type !== 'drupal-core') {
+            $prettyName = $package->getPrettyName();
+            if (strpos($prettyName, '/') !== false) {
+                 list($vendor, $name) = explode('/', $prettyName);
+            } else {
+                $vendor = '';
+                $name = $prettyName;
+            }
+
+            if ($type !== 'composer-plugin') {
                 $installPath = $this->installer->getInstallPath($package);
-                $basePath = dirname($this->composer->getConfig()->get('vendor-dir'));
+                $basePath = $this->baseDir;
                 $sitePath = rtrim(PackageUtils::getPackageInstallPath($package, $this->composer), '/');
                 $symlinkPath = $basePath . DIRECTORY_SEPARATOR . $sitePath;
-                $this->fs->ensureDirectoryExists(dirname($symlinkPath));
-                $this->fs->relativeSymlink($installPath, $symlinkPath);
+                $to = $basePath . '/build/master/vendor/' . $prettyName;
+                $from = $basePath . DIRECTORY_SEPARATOR . $installPath;
+                $this->fs->ensureDirectoryExists(dirname($to));
+                $this->fs->relativeSymlink($from, $to);
+
+                if ($type == 'drupal-core') {
+                    $this->fs->copy($from, dirname(dirname(dirname($to))));
+                }
+                elseif (substr($type, 0, 7) === "drupal-") {
+                    $this->fs->ensureDirectoryExists($basePath . '/build/master/' .  dirname($sitePath));
+                    $this->fs->relativeSymlink($to, $basePath . '/build/master/' . $sitePath);
+                }
+
+                // Scipping robo because they contain symlinks that can not be copied. To be fixed.
+                $binaries = $package->getBinaries();
+                if (!empty($binaries) && $name != 'robo') {
+                    $this->fs->remove($basePath .  '/build/master/vendor/' . $prettyName );
+                    $this->fs->copy($basePath .  '/' . $installPath, $basePath .  '/build/master/vendor/' . $prettyName);
+                    foreach ($binaries as $binary) {
+                        var_dump('From :' . $basePath .  '/build/master/vendor/' . $prettyName .  '/' . $binary);
+                        var_dump('To: ' .  $basePath . '/build/master/bin/' . $binary);
+                        $this->fs->remove($to);
+                        $this->fs->relativeSymlink($from, $to);
+                    }
+                }
             }
         }
     }

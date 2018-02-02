@@ -28,16 +28,6 @@ class Plugin implements PluginInterface, EventSubscriberInterface
     protected $composer;
 
     /**
-     * @var $vendorDir
-     */
-    protected $vendorDir;
-
-    /**
-     * @var $baseDir
-     */
-    protected $baseDir;
-
-    /**
      * @var $prefix
      */
     protected $prefix;
@@ -54,24 +44,26 @@ class Plugin implements PluginInterface, EventSubscriberInterface
 
     public function activate(Composer $composer, IOInterface $io)
     {
+        // Setup needed paths for the build structure.
+        $originalVendor = $composer->getConfig()->get('vendor-dir');
         $build = isset($GLOBALS['argv']) && in_array('--no-dev', $GLOBALS['argv']) ? 'dist' : 'build';
         $branch = trim(str_replace('* ', '', exec("git branch | grep '\*'")));
-        $baseDir = dirname($composer->getConfig()->get('vendor-dir', 1));
-        $vendorDir = basename($composer->getConfig()->get('vendor-dir', 1));
-        var_dump("Basedir: " . $baseDir);
-        $binDir = $vendorDir . DIRECTORY_SEPARATOR . basename($composer->getConfig()->get('bin-dir', 1));
         $prefix = $build . DIRECTORY_SEPARATOR . $branch . DIRECTORY_SEPARATOR;
+        $buildVendor = $prefix . basename($composer->getConfig()->get('vendor-dir'));
+        $buildBinary = $buildVendor . DIRECTORY_SEPARATOR . basename($composer->getConfig()->get('bin-dir'));
 
+        // Change paths in composer config.
         $composer->getConfig()->merge([
           'config' => [
-            'vendor-dir' => $prefix . DIRECTORY_SEPARATOR . $vendorDir,
-            'bin-dir' => $prefix . DIRECTORY_SEPARATOR . $binDir
+            'vendor-dir-original' => $originalVendor,
+            'vendor-dir' => $buildVendor,
+            'bin-dir' => $buildBinary
             ]
         ]);
 
+        // Add plugin properties and installer.
         $this->io = $io;
         $this->fs = new FileSystem();
-        $this->baseDir = '/home/verbral/toolkit-taskrunner';
         $this->composer = $composer;
         $this->installer = new PluginInstaller($io, $composer);
         $composer->getInstallationManager()->addInstaller($this->installer);
@@ -103,16 +95,16 @@ class Plugin implements PluginInterface, EventSubscriberInterface
      */
     public function onPostInstallOrUpdate(ScriptEvent $event)
     {
-        $composerSource = getcwd() . DIRECTORY_SEPARATOR;
-        $composerTarget = dirname($this->composer->getConfig()->get('vendor-dir')) . DIRECTORY_SEPARATOR;
+        $sourcePath = dirname($this->composer->getConfig()->get('vendor-dir-original')) . DIRECTORY_SEPARATOR;
+        $targetPath = dirname($this->composer->getConfig()->get('vendor-dir')) . DIRECTORY_SEPARATOR;
         $syncComposer = array(
             'vendor/composer/installed.json' => 'copy',
             'composer.json' => 'relativeSymlink',
             'composer.lock' => 'copy'
         );
         foreach ($syncComposer as $origin => $action) {
-            if (file_exists($composerSource . $origin)) {
-                $this->fs->$action($composerSource . $origin, $composerTarget . $origin);
+            if (file_exists($sourcePath . $origin)) {
+                $this->fs->$action($sourcePath . $origin, $targetPath . $origin);
             }
         }
     }
@@ -140,34 +132,35 @@ class Plugin implements PluginInterface, EventSubscriberInterface
             }
 
             if ($type !== 'composer-plugin') {
+                $vendorDirOriginal = $this->composer->getConfig()->get('vendor-dir-original');
+                $vendorDir = $this->composer->getConfig()->get('vendor-dir');
                 $installPath = $this->installer->getInstallPath($package);
-                $vendorDir = $this->composer->getConfig()->get('vendor-dir', 1);
-                $buildPath = dirname($vendorDir);
-                $sitePath = rtrim(PackageUtils::getPackageInstallPath($package, $this->composer), '/');
+                $sitePath = dirname($vendorDir) . DIRECTORY_SEPARATOR . rtrim(PackageUtils::getPackageInstallPath($package, $this->composer), '/');
                 $to = $vendorDir . DIRECTORY_SEPARATOR . $prettyName;
-                $from = $buildPath . DIRECTORY_SEPARATOR . $installPath;
+                $from = $installPath;
                 $this->fs->ensureDirectoryExists(dirname($to));
                 $this->fs->relativeSymlink($from, $to);
 
                 if ($type == 'drupal-core') {
-                    $this->fs->copy($from, dirname(dirname(dirname($to))));
+                    $this->fs->copy($from, dirname($vendorDir));
                 }
                 elseif (substr($type, 0, 7) === "drupal-") {
-                    $this->fs->ensureDirectoryExists($buildPath . DIRECTORY_SEPARATOR .  dirname($sitePath));
-                    $this->fs->relativeSymlink($to, $buildPath . DIRECTORY_SEPARATOR .  $sitePath);
+                    $this->fs->ensureDirectoryExists(dirname($sitePath));
+                    $this->fs->relativeSymlink($to, $sitePath);
                 }
 
                 // Scipping robo because they contain symlinks that can not be copied. To be fixed.
                 $binaries = $package->getBinaries();
                 if (!empty($binaries) && $name != 'robo') {
-                    $binDir = $this->composer->getConfig()->get('bin-dir', 1);
-                    var_dump('BinDir: ' . $binDir);
+                    $binDir = $this->composer->getConfig()->get('bin-dir');
                     $this->fs->remove($vendorDir . DIRECTORY_SEPARATOR . $prettyName );
-                    $this->fs->copy($buildPath . DIRECTORY_SEPARATOR .  $installPath, $vendorDir . DIRECTORY_SEPARATOR . $prettyName);
+                    $this->fs->copy($installPath, $vendorDir . DIRECTORY_SEPARATOR . $prettyName);
                     foreach ($binaries as $binary) {
                         $from = $vendorDir . DIRECTORY_SEPARATOR . $prettyName .  DIRECTORY_SEPARATOR . $binary;
-                        $to = $binDir . DIRECTORY_SEPARATOR . $binary;
+                        // @todo: Provide fix to ensure no double dirs for bindir.
+                        $to = str_replace('/bin/bin' , '/bin', $binDir . DIRECTORY_SEPARATOR . $binary);
                         $this->fs->remove($to);
+                        $this->fs->ensureDirectoryExists(dirname($to));
                         $this->fs->relativeSymlink($from, $to);
                     }
                 }

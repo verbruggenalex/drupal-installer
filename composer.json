@@ -1,18 +1,22 @@
 {
   "name": "verbruggenalex/drupal-installer",
   "type": "composer-plugin",
+  "require": {
+    "composer-plugin-api": "^1.0"
+  },
   "replace": {
     "composer/installers": "*"
   },
   "autoload": {
     "psr-4": {
-      "MyBundle\\Composer\\": "src"
+      "VerbruggenAlex\\Composer\\": "src"
     }
   },
   "extra": {
-    "class": "MyBundle\\Composer\\Plugin"
-  },
-  "require": {
-    "composer-plugin-api": "^1.0"
+    "drupal-installer": {
+      "build-dir": {"--dev": "build", "--no-dev": "dist"},
+      "version-dir": {"--dev": "{$branch}", "--no-dev": "{$tag}"}
+    },
+    "class": "VerbruggenAlex\\Composer\\DrupalInstallerPlugin"
   }
 }

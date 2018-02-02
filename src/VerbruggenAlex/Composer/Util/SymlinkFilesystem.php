@@ -16,7 +16,7 @@ use Composer\Util\Filesystem;
 /**
  * @author Sylvain Lorinet <sylvain.lorinet@gmail.com>
  */
-class SymlinkFilesystem extends Filesystem
+class Filesystem extends Filesystem
 {
     /**
      * Create a symlink

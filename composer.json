@@ -8,8 +8,8 @@
     "composer/installers": "*"
   },
   "autoload": {
-    "psr-4": {
-      "VerbruggenAlex\\Composer\\": "src"
+    "psr-0": {
+      "VerbruggenAlex\\Composer\\": "src/"
     }
   },
   "extra": {

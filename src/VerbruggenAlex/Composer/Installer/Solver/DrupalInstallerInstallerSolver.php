@@ -18,7 +18,7 @@ use Composer\Installer\LibraryInstaller;
 use Composer\Package\PackageInterface;
 use Composer\Repository\InstalledRepositoryInterface;
 use VerbruggenAlex\Composer\Installer\DrupalInstallerInstaller;
-use VerbruggenAlex\Composer\Util\SymlinkFilesystem;
+use Composer\Util\Filesystem;
 
 /**
  * @author Sylvain Lorinet <sylvain.lorinet@gmail.com>
@@ -26,7 +26,7 @@ use VerbruggenAlex\Composer\Util\SymlinkFilesystem;
 class DrupalInstallerInstallerSolver implements InstallerInterface
 {
     /**
-     * @var SymlinkFilesystem
+     * @var Filesystem
      */
     protected $filesystem;
 

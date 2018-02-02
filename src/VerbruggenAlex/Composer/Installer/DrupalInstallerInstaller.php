@@ -20,16 +20,16 @@ use Composer\Installer\LibraryInstaller;
 use Composer\IO\IOInterface;
 use Composer\Package\PackageInterface;
 use Composer\Repository\InstalledRepositoryInterface;
+use Composer\Util\Filesystem;
 use VerbruggenAlex\Composer\Data\Package\PackageDataManagerInterface;
 use VerbruggenAlex\Composer\Installer\Config\DrupalInstallerInstallerConfig;
-use VerbruggenAlex\Composer\Util\SymlinkFilesystem;
 
 /**
  * @author Sylvain Lorinet <sylvain.lorinet@gmail.com>
  */
 class DrupalInstallerInstaller extends LibraryInstaller
 {
-    const PACKAGE_TYPE = 'composer-plugin';
+    const PACKAGE_TYPE = 'drupal-installer';
     const PACKAGE_PRETTY_NAME = 'verbruggenalex/drupal-installer';
 
     /**
@@ -43,7 +43,7 @@ class DrupalInstallerInstaller extends LibraryInstaller
     protected $packageDataManager;
 
     /**
-     * @var SymlinkFilesystem
+     * @var Filesystem
      */
     protected $filesystem;
 
@@ -51,14 +51,14 @@ class DrupalInstallerInstaller extends LibraryInstaller
     /**
      * @param IOInterface                  $io
      * @param Composer                     $composer
-     * @param SymlinkFilesystem            $filesystem
+     * @param Filesystem            $filesystem
      * @param PackageDataManagerInterface  $dataManager
      * @param DrupalInstallerInstallerConfig $config
      */
     public function __construct(
         IOInterface $io,
         Composer $composer,
-        SymlinkFilesystem $filesystem,
+        Filesystem $filesystem,
         PackageDataManagerInterface $dataManager,
         DrupalInstallerInstallerConfig $config
     )
@@ -79,12 +79,14 @@ class DrupalInstallerInstaller extends LibraryInstaller
     public function getInstallPath(PackageInterface $package)
     {
         $this->initializeVendorDir();
+        var_dump($this->config->getOriginalVendorDir());
 
         $basePath =
             $this->config->getOriginalVendorDir(). DIRECTORY_SEPARATOR
             . $package->getPrettyName() . DIRECTORY_SEPARATOR
             . $package->getPrettyVersion()
         ;
+        var_dump($basePath);
 
         $targetDir = $package->getTargetDir();
 
@@ -232,19 +234,19 @@ class DrupalInstallerInstaller extends LibraryInstaller
      */
     protected function removePackageVendorSymlink(PackageInterface $package)
     {
-        if (
-            $this->config->isSymlinkEnabled()
-            && $this->filesystem->removeSymlink($this->getPackageVendorSymlink($package))
-        ) {
-            $this->io->write(array(
-                '  - Deleting symlink for <info>' . $package->getPrettyName() . '</info> '
-                . '(<fg=yellow>' . $package->getPrettyVersion() . '</fg=yellow>)',
-                ''
-            ));
-
-            $symlinkParentDirectory = dirname($this->getPackageVendorSymlink($package));
-            $this->filesystem->removeEmptyDirectory($symlinkParentDirectory);
-        }
+//        if (
+//            $this->config->isSymlinkEnabled()
+//            && $this->filesystem->removeSymlink($this->getPackageVendorSymlink($package))
+//        ) {
+//            $this->io->write(array(
+//                '  - Deleting symlink for <info>' . $package->getPrettyName() . '</info> '
+//                . '(<fg=yellow>' . $package->getPrettyVersion() . '</fg=yellow>)',
+//                ''
+//            ));
+//
+//            $symlinkParentDirectory = dirname($this->getPackageVendorSymlink($package));
+//            $this->filesystem->removeEmptyDirectory($symlinkParentDirectory);
+//        }
     }
 
     /**

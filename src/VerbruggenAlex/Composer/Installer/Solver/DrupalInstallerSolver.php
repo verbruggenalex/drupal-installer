@@ -56,26 +56,27 @@ class DrupalInstallerSolver
      */
     public function isDrupalInstaller(PackageInterface $package)
     {
-        $prettyName = $package->getPrettyName();
-
-        // Avoid putting this package into dependencies folder, because on the first installation the package won't be
-        // installed in dependencies folder but in the vendor folder.
-        // So I prefer keeping this behavior for further installs.
-        if (DrupalInstallerInstaller::PACKAGE_PRETTY_NAME === $prettyName) {
-            return false;
-        }
-
-        if ($this->areAllShared || DrupalInstallerInstaller::PACKAGE_TYPE === $package->getType()) {
-            return true;
-        }
-
-        foreach ($this->packageCallbacks as $equalityCallback) {
-            if ($equalityCallback($prettyName)) {
-                return true;
-            }
-        }
-
-        return false;
+//        $prettyName = $package->getPrettyName();
+//
+//        // Avoid putting this package into dependencies folder, because on the first installation the package won't be
+//        // installed in dependencies folder but in the vendor folder.
+//        // So I prefer keeping this behavior for further installs.
+//        if (DrupalInstallerInstaller::PACKAGE_PRETTY_NAME === $prettyName) {
+//            return false;
+//        }
+//
+//        if ($this->areAllShared || DrupalInstallerInstaller::PACKAGE_TYPE === $package->getType()) {
+//            return true;
+//        }
+//
+//        foreach ($this->packageCallbacks as $equalityCallback) {
+//            if ($equalityCallback($prettyName)) {
+//                return true;
+//            }
+//        }
+//
+//        return false;
+        return true;
     }
 
     /**

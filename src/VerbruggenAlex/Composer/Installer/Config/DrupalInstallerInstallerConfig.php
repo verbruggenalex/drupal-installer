@@ -13,11 +13,6 @@ namespace VerbruggenAlex\Composer\Installer\Config;
 
 use VerbruggenAlex\Composer\Installer\DrupalInstallerInstaller;
 
-/**
- * @author Sylvain Lorinet <sylvain.lorinet@gmail.com>
- *
- * @see https://github.com/Letudiant/composer-shared-package-plugin/blob/master/docs/all-available-configurations.md
- */
 class DrupalInstallerInstallerConfig
 {
     const ENV_PARAMETER_VENDOR_DIR        = 'COMPOSER_SPP_VENDOR_DIR';
@@ -94,9 +89,9 @@ class DrupalInstallerInstallerConfig
         if (isset($extraConfigs[DrupalInstallerInstaller::PACKAGE_TYPE]['symlink-dir'])) {
             $this->symlinkDir = $extraConfigs[DrupalInstallerInstaller::PACKAGE_TYPE]['symlink-dir'];
 
-            if ('/' != $this->symlinkDir[0]) {
-                $this->symlinkDir = $baseDir . $this->symlinkDir;
-            }
+//            if ('/' != $this->symlinkDir[0]) {
+//                $this->symlinkDir = $baseDir . $this->symlinkDir;
+//            }
         }
     }
 
@@ -128,9 +123,9 @@ class DrupalInstallerInstallerConfig
             $this->vendorDir = getenv(static::ENV_PARAMETER_VENDOR_DIR);
         }
 
-        if ('/' != $this->vendorDir[0]) {
-            $this->vendorDir = $baseDir . $this->vendorDir;
-        }
+//        if ('/' != $this->vendorDir[0]) {
+//            $this->vendorDir = $baseDir . $this->vendorDir;
+//        }
 
         // Replace branch variable.
         // @todo: Also allow tag replacement.
@@ -180,25 +175,25 @@ class DrupalInstallerInstallerConfig
      */
     protected function setSymlinkBasePath(array $extraConfigs)
     {
-        if (isset($extraConfigs[DrupalInstallerInstaller::PACKAGE_TYPE]['symlink-base-path'])) {
-            $this->symlinkBasePath = $extraConfigs[DrupalInstallerInstaller::PACKAGE_TYPE]['symlink-base-path'];
-
-            if (false !== getenv(static::ENV_PARAMETER_SYMLINK_BASE_PATH)) {
-                $this->symlinkBasePath = getenv(static::ENV_PARAMETER_SYMLINK_BASE_PATH);
-            }
-
-            // Remove the ending slash if exists
-            if ('/' === $this->symlinkBasePath[strlen($this->symlinkBasePath) - 1]) {
-                $this->symlinkBasePath = substr($this->symlinkBasePath, 0, -1);
-            }
-        } elseif (0 < strpos($extraConfigs[DrupalInstallerInstaller::PACKAGE_TYPE]['vendor-dir'], '/')) {
-            $this->symlinkBasePath = $extraConfigs[DrupalInstallerInstaller::PACKAGE_TYPE]['vendor-dir'];
-        }
-
-        // Up to the project root directory
-        if (0 < strpos($this->symlinkBasePath, '/')) {
-            $this->symlinkBasePath = '../../' . $this->symlinkBasePath;
-        }
+//        if (isset($extraConfigs[DrupalInstallerInstaller::PACKAGE_TYPE]['symlink-base-path'])) {
+//            $this->symlinkBasePath = $extraConfigs[DrupalInstallerInstaller::PACKAGE_TYPE]['symlink-base-path'];
+//
+//            if (false !== getenv(static::ENV_PARAMETER_SYMLINK_BASE_PATH)) {
+//                $this->symlinkBasePath = getenv(static::ENV_PARAMETER_SYMLINK_BASE_PATH);
+//            }
+//
+//            // Remove the ending slash if exists
+//            if ('/' === $this->symlinkBasePath[strlen($this->symlinkBasePath) - 1]) {
+//                $this->symlinkBasePath = substr($this->symlinkBasePath, 0, -1);
+//            }
+//        } elseif (0 < strpos($extraConfigs[DrupalInstallerInstaller::PACKAGE_TYPE]['vendor-dir'], '/')) {
+//            $this->symlinkBasePath = $extraConfigs[DrupalInstallerInstaller::PACKAGE_TYPE]['vendor-dir'];
+//        }
+//
+//        // Up to the project root directory
+//        if (0 < strpos($this->symlinkBasePath, '/')) {
+//            $this->symlinkBasePath = '../../' . $this->symlinkBasePath;
+//        }
     }
 
     /**

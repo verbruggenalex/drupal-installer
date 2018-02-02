@@ -50,13 +50,70 @@ class DrupalInstallerSolver
     }
 
     /**
+     * Replace vars in a path
+     *
+     * @param  string $path
+     * @param  array  $vars
+     * @return string
+     */
+    public function templatePath($path, array $vars = array())
+    {
+        if (strpos($path, '{') !== false) {
+            extract($vars);
+            preg_match_all('@\{\$([A-Za-z0-9_]*)\}@i', $path, $matches);
+            if (!empty($matches[1])) {
+                foreach ($matches[1] as $var) {
+                    $path = str_replace('{$' . $var . '}', $$var, $path);
+                }
+            }
+        }
+        return $path;
+    }
+
+
+    /**
+     * Search through a passed paths array for a custom install path.
+     *
+     * @param  array  $paths
+     * @param  string $name
+     * @param  string $type
+     * @param  string $vendor = NULL
+     * @return string
+     */
+    public function mapCustomInstallPaths(array $paths, $name, $type, $vendor = NULL)
+    {
+        foreach ($paths as $path => $names) {
+            if (in_array($name, $names) || in_array('type:' . $type, $names) || in_array('vendor:' . $vendor, $names)) {
+                return $path;
+            }
+        }
+        return false;
+    }
+
+
+    /**
+     * For an installer to override to modify the vars per installer.
+     *
+     * @param  array $vars
+     * @return array
+     */
+    public function inflectPackageVars($vars)
+    {
+        return $vars;
+    }
+
+    /**
      * @param PackageInterface $package
      *
      * @return bool
      */
     public function isDrupalInstaller(PackageInterface $package)
     {
-//        $prettyName = $package->getPrettyName();
+        $prettyName = $package->getPrettyName();
+
+        if ($prettyName == 'verbruggenalex/drupal-installer') {
+            return false;
+        }
 //
 //        // Avoid putting this package into dependencies folder, because on the first installation the package won't be
 //        // installed in dependencies folder but in the vendor folder.

@@ -16,7 +16,7 @@ use Composer\Util\Filesystem;
 /**
  * @author Sylvain Lorinet <sylvain.lorinet@gmail.com>
  */
-class Filesystem extends Filesystem
+class SymlinkFilesystem extends Filesystem
 {
     /**
      * Create a symlink
@@ -31,7 +31,7 @@ class Filesystem extends Filesystem
         if (!is_link($symlinkPath)) {
             $this->ensureDirectoryExists(dirname($symlinkPath));
 
-            return symlink($sourcePath, $symlinkPath);
+            return $this->relativeSymlink($sourcePath, $symlinkPath);
         }
 
         return false;

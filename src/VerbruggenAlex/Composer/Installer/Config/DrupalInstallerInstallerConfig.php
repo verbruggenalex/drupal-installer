@@ -36,7 +36,7 @@ class DrupalInstallerInstallerConfig
     /**
      * @var string
      */
-    protected $symlinkDir;
+    protected $baseDir;
 
     /**
      * @var string
@@ -58,6 +58,11 @@ class DrupalInstallerInstallerConfig
      */
     protected $packageList = array();
 
+    /**
+     * @var array
+     */
+    protected $installerPaths = array();
+
 
     /**
      * @param array      $originalDirectories
@@ -72,25 +77,26 @@ class DrupalInstallerInstallerConfig
         $this->originalVendorDir = $originalVendorDir['relative'];
         $this->originalBinDir = $originalBinDir['relative'];
         $this->setVendorDir($baseDir, $extraConfigs);
-        $this->setSymlinkDirectory($baseDir, $extraConfigs);
+        $this->setBaseDir($baseDir, $extraConfigs);
         $this->setSymlinkBasePath($extraConfigs);
         $this->setIsSymlinkEnabled($extraConfigs);
         $this->setPackageList($extraConfigs);
+        $this->setInstallerpaths($extraConfigs);
     }
 
     /**
      * @param string $baseDir
      * @param array  $extraConfigs
      */
-    protected function setSymlinkDirectory($baseDir, array $extraConfigs)
+    protected function setBaseDir($baseDir)
     {
-        $this->symlinkDir = $baseDir . 'vendor-shared';
+        $this->baseDir = $baseDir;
 
         if (isset($extraConfigs[DrupalInstallerInstaller::PACKAGE_TYPE]['symlink-dir'])) {
-            $this->symlinkDir = $extraConfigs[DrupalInstallerInstaller::PACKAGE_TYPE]['symlink-dir'];
+            $this->baseDir = $extraConfigs[DrupalInstallerInstaller::PACKAGE_TYPE]['symlink-dir'];
 
-//            if ('/' != $this->symlinkDir[0]) {
-//                $this->symlinkDir = $baseDir . $this->symlinkDir;
+//            if ('/' != $this->baseDir[0]) {
+//                $this->baseDir = $baseDir . $this->baseDir;
 //            }
         }
     }
@@ -110,18 +116,18 @@ class DrupalInstallerInstallerConfig
         // Check if we have custom naming for the build and/or version directory.
         if (array_key_exists('drupal-installer', $extraConfigs)) {
             foreach (array('build-dir', 'version-dir') as $type) {
-                if (in_array($type, $extraConfigs['drupal-installer'])) {
-                    $this->vendorDir .= isset($GLOBALS['argv']) && in_array('--no-dev', $GLOBALS['argv'])
+                if (array_key_exists($type, $extraConfigs['drupal-installer'])) {
+                    $this->vendorDir .= (isset($GLOBALS['argv']) && in_array('--no-dev', $GLOBALS['argv']))
                       ? $extraConfigs['drupal-installer'][$type]['--no-dev']
-                      : $extraConfigs['drupal-installer'][$type]['no-dev'];
+                      : $extraConfigs['drupal-installer'][$type]['--dev'];
                 }
-                $this->vendorDir = rtrim('/', $this->vendorDir) . DIRECTORY_SEPARATOR;
+                $this->vendorDir = rtrim($this->vendorDir, '/') . DIRECTORY_SEPARATOR;
             }
         }
 
-        if (false !== getenv(static::ENV_PARAMETER_VENDOR_DIR)) {
-            $this->vendorDir = getenv(static::ENV_PARAMETER_VENDOR_DIR);
-        }
+//        if (false !== getenv(static::ENV_PARAMETER_VENDOR_DIR)) {
+//            $this->vendorDir = getenv(static::ENV_PARAMETER_VENDOR_DIR);
+//        }
 
 //        if ('/' != $this->vendorDir[0]) {
 //            $this->vendorDir = $baseDir . $this->vendorDir;
@@ -130,40 +136,19 @@ class DrupalInstallerInstallerConfig
         // Replace branch variable.
         // @todo: Also allow tag replacement.
         $availableVars = $this->inflectPackageVars(compact('branch', 'tag'));
-        $this->vendorDir = $this->templatePath($this->vendorDir, $availableVars);
+        $this->vendorDir = rtrim($this->templatePath($this->vendorDir, $availableVars), '/')
+          .DIRECTORY_SEPARATOR
+          . $this->getOriginalVendorDir();
     }
 
     /**
-     * Replace vars in a path
+     * Get the installer paths.
      *
-     * @param  string $path
-     * @param  array  $vars
-     * @return string
-     */
-    protected function templatePath($path, array $vars = array())
-    {
-        if (strpos($path, '{') !== false) {
-            extract($vars);
-            preg_match_all('@\{\$([A-Za-z0-9_]*)\}@i', $path, $matches);
-            if (!empty($matches[1])) {
-                foreach ($matches[1] as $var) {
-                    $path = str_replace('{$' . $var . '}', $$var, $path);
-                }
-            }
-        }
-        return $path;
-    }
-
-
-    /**
-     * For an installer to override to modify the vars per installer.
-     *
-     * @param  array $vars
      * @return array
      */
-    public function inflectPackageVars($vars)
+    public function getInstallerPaths()
     {
-        return $vars;
+        return $this->installerPaths;
     }
 
     /**
@@ -238,6 +223,16 @@ class DrupalInstallerInstallerConfig
     }
 
     /**
+     * @param array $extraConfigs
+     */
+    public function setInstallerPaths(array $extraConfigs)
+    {
+        if (isset($extraConfigs['installer-paths'])) {
+            $this->installerPaths = $extraConfigs['installer-paths'];
+        }
+    }
+
+    /**
      * @return bool
      */
     public function isSymlinkEnabled()
@@ -256,9 +251,9 @@ class DrupalInstallerInstallerConfig
     /**
      * @return string
      */
-    public function getSymlinkDir()
+    public function getBaseDir()
     {
-        return $this->symlinkDir;
+        return $this->baseDir;
     }
 
     /**

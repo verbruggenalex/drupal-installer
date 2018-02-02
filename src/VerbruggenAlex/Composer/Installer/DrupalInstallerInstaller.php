@@ -20,7 +20,7 @@ use Composer\Installer\LibraryInstaller;
 use Composer\IO\IOInterface;
 use Composer\Package\PackageInterface;
 use Composer\Repository\InstalledRepositoryInterface;
-use Composer\Util\Filesystem;
+use VerbruggenAlex\Composer\Util\SymlinkFilesystem;
 use VerbruggenAlex\Composer\Data\Package\PackageDataManagerInterface;
 use VerbruggenAlex\Composer\Installer\Config\DrupalInstallerInstallerConfig;
 
@@ -43,7 +43,7 @@ class DrupalInstallerInstaller extends LibraryInstaller
     protected $packageDataManager;
 
     /**
-     * @var Filesystem
+     * @var SymlinkFilesystem
      */
     protected $filesystem;
 
@@ -51,14 +51,14 @@ class DrupalInstallerInstaller extends LibraryInstaller
     /**
      * @param IOInterface                  $io
      * @param Composer                     $composer
-     * @param Filesystem            $filesystem
+     * @param SymlinkFilesystem            $filesystem
      * @param PackageDataManagerInterface  $dataManager
      * @param DrupalInstallerInstallerConfig $config
      */
     public function __construct(
         IOInterface $io,
         Composer $composer,
-        Filesystem $filesystem,
+        SymlinkFilesystem $filesystem,
         PackageDataManagerInterface $dataManager,
         DrupalInstallerInstallerConfig $config
     )
@@ -79,14 +79,12 @@ class DrupalInstallerInstaller extends LibraryInstaller
     public function getInstallPath(PackageInterface $package)
     {
         $this->initializeVendorDir();
-        var_dump($this->config->getOriginalVendorDir());
 
         $basePath =
             $this->config->getOriginalVendorDir(). DIRECTORY_SEPARATOR
             . $package->getPrettyName() . DIRECTORY_SEPARATOR
             . $package->getPrettyVersion()
         ;
-        var_dump($basePath);
 
         $targetDir = $package->getTargetDir();
 
@@ -100,7 +98,7 @@ class DrupalInstallerInstaller extends LibraryInstaller
      */
     protected function getPackageVendorSymlink(PackageInterface $package)
     {
-        return $this->config->getOriginalVendorDir() . DIRECTORY_SEPARATOR . $package->getPrettyName();
+        return $this->config->getBaseDir() . DIRECTORY_SEPARATOR . $this->config->getVendorDir() . DIRECTORY_SEPARATOR . $package->getPrettyName();
     }
 
     /**
@@ -116,7 +114,21 @@ class DrupalInstallerInstaller extends LibraryInstaller
             $repo->addPackage(clone $package);
         }
 
-        $this->createPackageVendorSymlink($package);
+        if ($package->getType() == 'drupal-core') {
+            $sourcePath = $this->getInstallPath($package);
+            $targetPath = dirname($this->config->getVendorDir());
+            $sourceAvailable = file_exists($sourcePath . DIRECTORY_SEPARATOR . "index.php");
+            $siteAvailable = file_exists($targetPath . DIRECTORY_SEPARATOR . "index.php");
+            if (!$siteAvailable) {
+                $this->filesystem->copy($sourcePath, $targetPath);
+            }
+        }
+        else {
+            $this->createPackageVendorSymlink($package);
+            if (substr($package->getType(), 0, 7) === "drupal-") {
+                $this->createPackageBuildsymlink($package);
+            }
+        }
         $this->packageDataManager->addPackageUsage($package);
     }
 
@@ -128,6 +140,21 @@ class DrupalInstallerInstaller extends LibraryInstaller
      */
     public function isInstalled(InstalledRepositoryInterface $repo, PackageInterface $package)
     {
+//        else {
+//            $sourcePath = $this->getInstallPath($package);
+//            $targetPath = dirname($this->composer->getConfig()->get('vendor-dir')) . DIRECTORY_SEPARATOR . rtrim(PackageUtils::getPackageInstallPath($package, $this->composer), '/');
+//            $sourceAvailable = $repo->hasPackage($package) && is_readable($sourcePath);
+//            $packageAvailable = is_readable($targetPath);
+//            if (!$sourceAvailable) {
+//                return false;
+//            } elseif (!$packageAvailable) {
+//                $fs->ensureDirectoryExists(dirname($targetPath));
+//                $fs->relativeSymlink($sourcePath, $targetPath);
+//                return true;
+//            } else {
+//                return true;
+//            }
+//        }
         // Just check if the sources folder and the link exist
         return
             $repo->hasPackage($package)
@@ -205,14 +232,32 @@ class DrupalInstallerInstaller extends LibraryInstaller
     protected function createPackageVendorSymlink(PackageInterface $package)
     {
         if ($this->config->isSymlinkEnabled() && $this->filesystem->ensureSymlinkExists(
-                $this->getSymlinkSourcePath($package),
-                $this->getPackageVendorSymlink($package)
-            )
+            $this->getSymlinkSourcePath($package),
+            $this->getPackageVendorSymlink($package)
+          )
         ) {
-            $this->io->write(array(
-                '  - Creating symlink for <info>' . $package->getPrettyName()
-                . '</info> (<fg=yellow>' . $package->getPrettyVersion() . '</fg=yellow>)',
-                ''
+            $this->io->writeError(array(
+              '  - Creating vendor symlink for <info>' . $package->getPrettyName()
+              . '</info> (<fg=yellow>' . $package->getPrettyVersion() . '</fg=yellow>)',
+              ''
+            ));
+        }
+    }
+
+    /**
+     * @param PackageInterface $package
+     */
+    protected function createPackageBuildsymlink(PackageInterface $package)
+    {
+        if ($this->config->isSymlinkEnabled() && $this->filesystem->ensureSymlinkExists(
+            $this->getPackageVendorSymlink($package),
+            $this->getPackageBuildSymlink($package)
+          )
+        ) {
+            $this->io->writeError(array(
+              '  - Creating build symlink for <info>' . $package->getPrettyName()
+              . '</info> (<fg=yellow>' . $package->getPrettyVersion() . '</fg=yellow>)',
+              ''
             ));
         }
     }
@@ -224,7 +269,7 @@ class DrupalInstallerInstaller extends LibraryInstaller
      */
     protected function getSymlinkSourcePath(PackageInterface $package)
     {
-        return $this->getInstallPath($package);
+        return $this->config->getBaseDir() . DIRECTORY_SEPARATOR . $this->getInstallPath($package);
     }
 
     /**
@@ -247,6 +292,35 @@ class DrupalInstallerInstaller extends LibraryInstaller
 //            $symlinkParentDirectory = dirname($this->getPackageVendorSymlink($package));
 //            $this->filesystem->removeEmptyDirectory($symlinkParentDirectory);
 //        }
+    }
+
+    public function getPackageBuildSymlink(PackageInterface $package)
+    {
+        $type = $package->getType();
+        $prettyName = $package->getPrettyName();
+        if (strpos($prettyName, '/') !== false) {
+            list($vendor, $name) = explode('/', $prettyName);
+        } else {
+            $vendor = '';
+            $name = $prettyName;
+        }
+
+        $availableVars = compact('name', 'vendor');
+
+        $extra = $package->getExtra();
+        if (!empty($extra['installer-name'])) {
+            $availableVars['name'] = $extra['installer-name'];
+        }
+        if(!empty($this->config->getInstallerPaths())) {
+            $customPath = $this->config->mapCustomInstallPaths($this->config->getInstallerPaths(), $prettyName, $type, $vendor);
+            if(false !== $customPath) {
+                return $this->config->getBaseDir() . DIRECTORY_SEPARATOR
+                . dirname($this->config->getVendorDir()) . DIRECTORY_SEPARATOR
+                . rtrim($this->config->templatePath($customPath, $availableVars), '/');
+            }
+        }
+
+        return NULL;
     }
 
     /**

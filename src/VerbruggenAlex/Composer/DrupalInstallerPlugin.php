@@ -6,12 +6,12 @@ use Composer\Composer;
 use Composer\Installer\LibraryInstaller;
 use Composer\IO\IOInterface;
 use Composer\Plugin\PluginInterface;
-use Composer\Util\Filesystem;
 use VerbruggenAlex\Composer\Data\Package\DrupalInstallerDataManager;
 use VerbruggenAlex\Composer\Installer\Config\DrupalInstallerInstallerConfig;
 use VerbruggenAlex\Composer\Installer\Solver\DrupalInstallerSolver;
 use VerbruggenAlex\Composer\Installer\DrupalInstallerInstaller;
 use VerbruggenAlex\Composer\Installer\Solver\DrupalInstallerInstallerSolver;
+use VerbruggenAlex\Composer\Util\SymlinkFilesystem;
 
 class DrupalInstallerPlugin implements PluginInterface
 {
@@ -23,7 +23,7 @@ class DrupalInstallerPlugin implements PluginInterface
     {
       // Set needed variables.
       $config = $this->setConfig($composer);
-      $filesystem = new Filesystem();
+      $filesystem = new SymlinkFilesystem();
       $installerDataManager = new DrupalInstallerDataManager($composer);
 
       // Add the installer.

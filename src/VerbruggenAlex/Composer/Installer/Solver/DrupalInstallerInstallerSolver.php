@@ -18,7 +18,7 @@ use Composer\Installer\LibraryInstaller;
 use Composer\Package\PackageInterface;
 use Composer\Repository\InstalledRepositoryInterface;
 use VerbruggenAlex\Composer\Installer\DrupalInstallerInstaller;
-use Composer\Util\Filesystem;
+use VerbruggenAlex\Composer\Util\SymlinkFilesystem;
 
 /**
  * @author Sylvain Lorinet <sylvain.lorinet@gmail.com>
@@ -26,7 +26,7 @@ use Composer\Util\Filesystem;
 class DrupalInstallerInstallerSolver implements InstallerInterface
 {
     /**
-     * @var Filesystem
+     * @var SymlinkFilesystem
      */
     protected $filesystem;
 
@@ -38,7 +38,7 @@ class DrupalInstallerInstallerSolver implements InstallerInterface
     /**
      * @var DrupalInstallerInstaller
      */
-    protected $symlinkInstaller;
+    protected $drupalInstaller;
 
     /**
      * @var LibraryInstaller
@@ -48,17 +48,17 @@ class DrupalInstallerInstallerSolver implements InstallerInterface
 
     /**
      * @param DrupalInstallerSolver    $solver
-     * @param DrupalInstallerInstaller $symlinkInstaller
+     * @param DrupalInstallerInstaller $drupalInstaller
      * @param LibraryInstaller       $defaultInstaller
      */
     public function __construct(
         DrupalInstallerSolver $solver,
-        DrupalInstallerInstaller $symlinkInstaller,
+        DrupalInstallerInstaller $drupalInstaller,
         LibraryInstaller $defaultInstaller
     )
     {
         $this->solver           = $solver;
-        $this->symlinkInstaller = $symlinkInstaller;
+        $this->drupalInstaller  = $drupalInstaller;
         $this->defaultInstaller = $defaultInstaller;
     }
 
@@ -72,7 +72,7 @@ class DrupalInstallerInstallerSolver implements InstallerInterface
     public function getInstallPath(PackageInterface $package)
     {
         if ($this->solver->isDrupalInstaller($package)) {
-            return $this->symlinkInstaller->getInstallPath($package);
+            return $this->drupalInstaller->getInstallPath($package);
         }
 
         return $this->defaultInstaller->getInstallPath($package);
@@ -85,7 +85,7 @@ class DrupalInstallerInstallerSolver implements InstallerInterface
     public function install(InstalledRepositoryInterface $repo, PackageInterface $package)
     {
         if ($this->solver->isDrupalInstaller($package)) {
-            $this->symlinkInstaller->install($repo, $package);
+            $this->drupalInstaller->install($repo, $package);
         } else {
             $this->defaultInstaller->install($repo, $package);
         }
@@ -100,7 +100,7 @@ class DrupalInstallerInstallerSolver implements InstallerInterface
     public function isInstalled(InstalledRepositoryInterface $repo, PackageInterface $package)
     {
         if ($this->solver->isDrupalInstaller($package)) {
-            return $this->symlinkInstaller->isInstalled($repo, $package);
+            return $this->drupalInstaller->isInstalled($repo, $package);
         }
 
         return $this->defaultInstaller->isInstalled($repo, $package);
@@ -119,7 +119,7 @@ class DrupalInstallerInstallerSolver implements InstallerInterface
                 throw new \InvalidArgumentException('Package is not installed : ' . $initial->getPrettyName());
             }
 
-            $this->symlinkInstaller->update($repo, $initial, $target);
+            $this->drupalInstaller->update($repo, $initial, $target);
         }
     }
 
@@ -136,7 +136,7 @@ class DrupalInstallerInstallerSolver implements InstallerInterface
                 throw new \InvalidArgumentException('Package is not installed : ' . $package->getPrettyName());
             }
 
-            $this->symlinkInstaller->uninstall($repo, $package);
+            $this->drupalInstaller->uninstall($repo, $package);
         } else {
             $this->defaultInstaller->uninstall($repo, $package);
         }

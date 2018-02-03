@@ -1,13 +1,13 @@
 <?php
 
-namespace MyBundle\Composer;
+namespace VerbruggenAlex\ComposerBuilder;
 
 use Composer\Composer;
 use Composer\Package\PackageInterface;
 
 class PackageUtils
 {
-    public static function getPackageInstallPath(PackageInterface $package, Composer $composer)
+    public static function getPackageInstallPath(PackageInterface $package, array $composerExtra)
     {
         $type = $package->getType();
         $prettyName = $package->getPrettyName();
@@ -25,17 +25,50 @@ class PackageUtils
             $availableVars['name'] = $extra['installer-name'];
         }
 
-        if ($composer->getPackage()) {
-            $extra = $composer->getPackage()->getExtra();
-            if(!empty($extra['installer-paths'])) {
-                $customPath = self::mapCustomInstallPaths($extra['installer-paths'], $prettyName, $type, $vendor);
-                if(false !== $customPath) {
-                    return self::templatePath($customPath, $availableVars);
-                }
+        if(isset($composerExtra['installer-paths'])) {
+            $customPath = self::mapCustomInstallPaths($composerExtra['installer-paths'], $prettyName, $type, $vendor);
+            if(false !== $customPath) {
+                return self::templatePath($customPath, $availableVars);
             }
         }
 
         return NULL;
+    }
+
+    public static function getBuildPath($originalVendor, $extraConfig)
+    {
+        $vendorDir = '';
+        $branch = trim(str_replace('* ', '', exec("git branch | grep '\*'")));
+        if (array_key_exists('drupal-installer', $extraConfig)) {
+            foreach (array('build-dir', 'version-dir') as $type) {
+                if (array_key_exists($type, $extraConfig['drupal-installer'])) {
+                    $vendorDir .= (isset($GLOBALS['argv']) && in_array('--no-dev', $GLOBALS['argv']))
+                      ? $extraConfig['drupal-installer'][$type]['--no-dev']
+                      : $extraConfig['drupal-installer'][$type]['--dev'];
+                }
+                $vendorDir = rtrim($vendorDir, '/') . DIRECTORY_SEPARATOR;
+            }
+        }
+
+        // Replace branch variable.
+        // @todo: Also allow tag replacement.
+        $availableVars = self::inflectPackageVars(compact('branch', 'tag'));
+        $vendorDir = rtrim(self::templatePath($vendorDir, $availableVars), '/')
+          .DIRECTORY_SEPARATOR
+          . $originalVendor;
+
+        return $vendorDir;
+    }
+
+    /**
+     * For an installer to override to modify the vars per installer.
+     *
+     * @param  array $vars
+     * @return array
+     */
+    public static function inflectPackageVars($vars)
+    {
+        return $vars;
     }
 
     /**

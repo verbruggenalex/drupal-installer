@@ -6,11 +6,11 @@
   },
   "autoload": {
     "psr-4": {
-      "MyBundle\\Composer\\": "src"
+      "VerbruggenAlex\\ComposerBuilder\\": "src"
     }
   },
   "extra": {
-    "class": "MyBundle\\Composer\\Plugin"
+    "class": "VerbruggenAlex\\ComposerBuilder\\Plugin"
   },
   "require": {
     "composer-plugin-api": "^1.0"
